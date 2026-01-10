@@ -4,7 +4,7 @@ from datetime import datetime, timedelta, timezone
 
 TOKEN_EXPIRY_MINUTES = 30
 
-def get_cur_user(authorization: str | None = Header(default=None)) -> str:
+def get_cur_session(authorization: str | None = Header(default=None)) -> tuple[str, str]:
     if not authorization:
         raise HTTPException(401, "Missing Authorization header")
     if not authorization.startswith("Bearer "):
@@ -25,4 +25,4 @@ def get_cur_user(authorization: str | None = Header(default=None)) -> str:
     if datetime.now(timezone.utc) - created_dt > timedelta(minutes=TOKEN_EXPIRY_MINUTES):
         raise HTTPException(401, "Token expired")
     
-    return username
+    return username, token

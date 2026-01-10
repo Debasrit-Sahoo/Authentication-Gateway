@@ -72,3 +72,18 @@ def get_username(token: str) -> tuple[str | None, str | None]:
 
     if not r: return None, None
     return r[0], r[1]
+
+def delete_token(token: str):
+    db = get_db()
+    cur = db.cursor()
+    cur.execute("DELETE FROM tokens WHERE token = ?", (token,))
+    db.commit()
+    db.close()
+
+def delete_user(username: str):
+    db = get_db()
+    cur = db.cursor()
+    cur.execute("DELETE FROM tokens WHERE username = ?", (username,))
+    cur.execute("DELETE FROM users WHERE username = ?", (username,))
+    db.commit()
+    db.close()

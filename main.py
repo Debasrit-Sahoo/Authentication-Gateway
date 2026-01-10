@@ -2,10 +2,10 @@ from fastapi import FastAPI, HTTPException, Depends, Request
 import time
 from fastapi.responses import JSONResponse
 from contextlib import asynccontextmanager
-from db import init_db, put_user, is_registered, fetch_hash, store_token
+from db import init_db, put_user, is_registered, fetch_hash, store_token, delete_token, delete_user
 from auth import hash_password, compare_password, generate_token
 from schemas import LoginRequest
-from auth_dependancies import get_cur_user
+from auth_dependancies import get_cur_session
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
@@ -68,7 +68,20 @@ def login(data: LoginRequest):
 
     return {"status" : "ok",
             "token" : token}
+
+@app.post("/logout")
+def logout(ses: tuple[str, str] = Depends(get_cur_session)):
+    _, token = ses
+    delete_token(token)
+    return {"status": "logged out"}
+    
+@app.delete("/deregister")
+def deregister(ses: tuple[str, str] = Depends(get_cur_session)):
+    user, _ = ses
+    delete_user(user)
+    return {"status": "account deleted"}
     
 @app.get("/me")
-def me(current_user: str = Depends(get_cur_user)):
-    return {"user": current_user}
+def me(ses: tuple[str, str] = Depends(get_cur_session)):
+    user, _ = ses
+    return {"user": user}
