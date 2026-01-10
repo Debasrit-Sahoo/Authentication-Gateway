@@ -1,4 +1,6 @@
-from fastapi import FastAPI, HTTPException, Depends
+from fastapi import FastAPI, HTTPException, Depends, Request
+import time
+from fastapi.responses import JSONResponse
 from contextlib import asynccontextmanager
 from db import init_db, put_user, is_registered, fetch_hash, store_token
 from auth import hash_password, compare_password, generate_token
@@ -17,6 +19,26 @@ async def lifespan(app: FastAPI):
 
 app = FastAPI(lifespan=lifespan)
 
+window = 30*60
+max_requests = 50
+
+rate_limit_store: dict[str, list[float]] = {}
+
+@app.middleware("http")
+async def rate_limiter(request: Request, call_next):
+    ip = request.client
+    ip = ip.host if ip else "unknown"
+    now = time.time()
+
+    timestamps = rate_limit_store.get(ip, [])
+    timestamps = [t for t in timestamps if now - t < window]
+    if len(timestamps) >= max_requests:
+        return JSONResponse(status_code=429, content={"detail": "Too many requests"})
+    
+    timestamps.append(now)
+    rate_limit_store[ip] = timestamps
+    return await call_next(request)
+
 @app.get("/")
 def root():
     return {"message": "Server is up."}
@@ -25,7 +47,7 @@ def root():
 def register(data: LoginRequest):
     username, password = data.username, data.password
     if is_registered(username):
-        raise HTTPException(400, "User is already registered")
+        return {"status": "already registered"}
     
     password_hash = hash_password(password)
     put_user(username, password_hash)
@@ -47,6 +69,6 @@ def login(data: LoginRequest):
     return {"status" : "ok",
             "token" : token}
     
-@app.get("/secure")
-def secure_endpoint(current_user: str = Depends(get_cur_user)):
+@app.get("/me")
+def me(current_user: str = Depends(get_cur_user)):
     return {"user": current_user}
