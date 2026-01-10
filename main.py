@@ -43,6 +43,10 @@ async def rate_limiter(request: Request, call_next):
 def root():
     return {"message": "Server is up."}
 
+@app.get("/health")
+def health():
+    return {"status": "ok", "uptime_seconds": time.time() - app.state.start_time}
+
 @app.post("/register")
 def register(data: LoginRequest):
     username, password = data.username, data.password
