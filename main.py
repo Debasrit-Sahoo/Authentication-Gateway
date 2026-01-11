@@ -39,8 +39,12 @@ async def rate_limiter(request: Request, call_next):
     if request.url.path not in PROTECTED_PATHS:
         return await call_next(request)
 
-    ip = request.client
-    ip = ip.host if ip else "unknown"
+    ip = request.headers.get("X-Forwarded-For")
+    if ip:
+        ip = ip.split(",")[0].strip()
+    else:
+        ip = request.client.host if request.client else "unknown"
+
     now = time.time()
 
     timestamps = rate_limit_store.get(ip, [])
