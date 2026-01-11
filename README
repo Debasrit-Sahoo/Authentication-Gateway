@@ -1,0 +1,73 @@
+# Authentication Gateway & Internal Proxy Server
+
+This project consists of two FastAPI apps:
+
+1. **Internal Server** – hosts sensitive data (e.g., nuclear launch codes). Only accessible via a secret header.
+2. **Gateway Server** – public-facing API. Authenticates users, validates tokens, and proxies requests to the internal server.
+
+---
+
+## Internal Server
+
+**File:** `internal_server.py`  
+**Purpose:** Stores sensitive endpoints for internal use.
+
+**Endpoints:**
+
+- `GET /launch-codes` – returns nuclear codes. Requires header `X-Internal-Gateway-Auth`.
+
+**Environment Variables:**
+
+- `INTERNAL_SECRET` – shared secret to authorize gateway requests.
+
+**Deployment:**
+
+- Should **not be publicly exposed** except via the gateway.
+- Example hosting: Railway, Render, etc.
+
+---
+
+## Gateway Server
+
+**File:** `main.py`  
+**Purpose:** Handles user authentication and proxies internal endpoints.
+
+**Endpoints:**
+
+- `GET /` – root check
+- `POST /register` – register a user
+- `POST /login` – login and receive token
+- `GET /secret/nuclear_codes` – proxies to internal server `/launch-codes`. Requires valid token.
+- `POST /logout` – invalidates token
+- `DELETE /deregister` – deletes user account
+
+**Environment Variables:**
+
+- `GATEWAY_SECRET` – same as `INTERNAL_SECRET` for internal proxy access
+- `INTERNAL_API_URL` – public URL of the internal server
+
+**Features:**
+
+- Token-based authentication
+- Rate limiting on protected endpoints
+- Proxy to internal server with secret header
+
+---
+
+## Example Usage (PowerShell)
+
+```powershell
+$BASE_URL = "https://your-gateway-url"
+$USERNAME = "tester"
+$PASSWORD = "password123"
+
+# Register
+Invoke-RestMethod "$BASE_URL/register" -Method POST -Body (@{username=$USERNAME;password=$PASSWORD} | ConvertTo-Json)
+
+# Login
+$login = Invoke-RestMethod "$BASE_URL/login" -Method POST -Body (@{username=$USERNAME;password=$PASSWORD} | ConvertTo-Json)
+$TOKEN = $login.token.Trim()
+$AUTH_HEADER = @{ Authorization = "Bearer $TOKEN" }
+
+# Fetch nuclear codes
+Invoke-RestMethod "$BASE_URL/secret/nuclear_codes" -Headers $AUTH_HEADER
