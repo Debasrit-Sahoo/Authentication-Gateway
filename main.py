@@ -18,6 +18,7 @@ if not INTERNAL_API_URL or not GATEWAY_SECRET:
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     init_db()
+    app.state.start_time = time.time() 
     print("Server booting...")
     print("Tables initialized")
 
