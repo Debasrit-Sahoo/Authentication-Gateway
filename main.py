@@ -6,6 +6,14 @@ from db import init_db, put_user, is_registered, fetch_hash, store_token, delete
 from auth import hash_password, compare_password, generate_token
 from schemas import LoginRequest
 from auth_dependancies import get_cur_session
+import os
+import httpx
+
+INTERNAL_API_URL = os.environ["INTERNAL_API_URL"]
+GATEWAY_SECRET = os.environ["GATEWAY_SECRET"]
+
+if not INTERNAL_API_URL or not GATEWAY_SECRET:
+    raise RuntimeError("Missing INTERNAL_API_URL or GATEWAY_SECRET")
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
@@ -24,8 +32,13 @@ max_requests = 50
 
 rate_limit_store: dict[str, list[float]] = {}
 
+PROTECTED_PATHS = {"/login", "/register", "/secret/nuclear_codes", "/me", "/logout", "/deregister"}
+
 @app.middleware("http")
 async def rate_limiter(request: Request, call_next):
+    if request.url.path not in PROTECTED_PATHS:
+        return await call_next(request)
+
     ip = request.client
     ip = ip.host if ip else "unknown"
     now = time.time()
@@ -85,7 +98,26 @@ def deregister(ses: tuple[str, str] = Depends(get_cur_session)):
     delete_user(user)
     return {"status": "account deleted"}
     
-@app.get("/me")
-def me(ses: tuple[str, str] = Depends(get_cur_session)):
-    user, _ = ses
-    return {"user": user}
+
+
+@app.get("/secret/nuclear_codes", include_in_schema=False)
+async def proxy(ses: tuple[str, str] = Depends(get_cur_session)):
+    try: 
+        async with httpx.AsyncClient(timeout=httpx.Timeout(2.0), follow_redirects=False) as client:
+            upstream = await client.get(f"{INTERNAL_API_URL}/launch-codes",
+                                        headers={"X-Internal-Gateway-Auth": GATEWAY_SECRET})
+    except httpx.RequestError:
+        raise HTTPException(502, "Upstream service unavailable")
+    
+    if upstream.status_code != 200:
+        raise HTTPException(502, "Upstream service error")
+    
+    data = upstream.json()
+    codes = data.get("codes")
+    if codes is None:
+        raise HTTPException(502, "Malformed upstream response")
+
+    return {
+        "intel": codes,
+        "classification": "restricted"
+    }

@@ -2,3 +2,4 @@ users.db
 __pycache__
 *.pyc
 test.ps1
+.env
