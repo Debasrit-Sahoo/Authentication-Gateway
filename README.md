@@ -7,6 +7,10 @@ This project consists of two FastAPI apps:
 
 ---
 
+<p align="center">
+  <img src="infrastructure.png" alt="Infrastructure Diagram" width="600"/>
+</p>
+
 ## Internal Server
 
 **File:** `internal_server.py`  
