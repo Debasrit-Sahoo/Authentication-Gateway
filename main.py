@@ -102,8 +102,6 @@ def deregister(ses: tuple[str, str] = Depends(get_cur_session)):
     delete_user(user)
     return {"status": "account deleted"}
     
-
-
 @app.get("/secret/nuclear_codes", include_in_schema=False)
 async def proxy(ses: tuple[str, str] = Depends(get_cur_session)):
     try: 
