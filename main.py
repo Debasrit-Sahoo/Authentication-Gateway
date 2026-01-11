@@ -33,7 +33,7 @@ max_requests = 50
 
 rate_limit_store: dict[str, list[float]] = {}
 
-PROTECTED_PATHS = {"/login", "/register", "/secret/nuclear_codes", "/me", "/logout", "/deregister"}
+PROTECTED_PATHS = {"/login", "/register", "/secret/nuclear_codes", "/health", "/secret/nuclear_codes", "/logout", "/deregister"}
 
 @app.middleware("http")
 async def rate_limiter(request: Request, call_next):
