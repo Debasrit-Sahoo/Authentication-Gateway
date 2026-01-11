@@ -8,7 +8,7 @@ This project consists of two FastAPI apps:
 ---
 
 <p align="center">
-  <img src="infrastructure.png" alt="Infrastructure Diagram" width="600"/>
+  <img src="diagram.png" alt="Infrastructure Diagram" width="600"/>
 </p>
 
 ## Internal Server
